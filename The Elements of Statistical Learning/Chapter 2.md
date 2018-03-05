@@ -22,7 +22,14 @@ The distinction of outputs type has led to a naming convention for the predictio
 
 Qualitative variables are typically represented numerically by codes. For example, 'Success' and 'Failures' are often represented with 1 and 0. Another example, is 'Survived' and 'Died' with 1 and -1. For reasons that will become apparent, such numeric codes are sometimes referred to as *targets*. When there are more than 2 categories, several alternatives are available. The most useful and commonly used coding is via *dummy variables*.
 
-$ \sum_{\forall i}{x_i^{2}} $
-''prob_a_given_b = prob_b_given_a * prob_a / prob_b''
-''Y = \beta''
-``$ y=\sum_{i=1}^n g(x_i) $``
+$\text{S}_1(N) = \sum_{p=1}^N \text{E}(p)$
+$$y-y_0=m(x-x_0)$$
+
+latexImg = function(latex){
+    link = paste0('http://latex.codecogs.com/gif.latex?',
+           gsub('\\=','%3D',URLencode(latex)))
+    link = gsub("(%..)","\\U\\1",link,perl=TRUE)
+    return(paste0('![](',link,')'))
+}
+
+$\lambda{}$.
