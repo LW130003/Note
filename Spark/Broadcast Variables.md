@@ -16,6 +16,7 @@ The Broadcast feature in Spark uses SparkContext to create broadcast values and 
 |---|---|
 
 **Broadcast API**
+
 |Method Name|Description|
 |---|---|
 |id|The unique identifier|
