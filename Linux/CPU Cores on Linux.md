@@ -1,6 +1,8 @@
 # Methods To Check Number of CPU Cores on Linux
 Source: https://www.2daygeek.com/command-check-find-number-of-cpu-cores-linux/#
 
+Note: To Understand Top command: https://www.2daygeek.com/linux-top-command-linux-system-performance-monitoring-tool/ 
+
 Objective:
 - To understand about CPU, Cores and Threads information
 
