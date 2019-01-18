@@ -22,4 +22,14 @@ Note:
 - Running executors with too much memory often results in excessive garbage collection delays.
 - Running tiny executors (with a single core and just enough memory needed to run a single task, for example) throws away the benefits that come from running multiple tasks in a single JVM.
 
+# Hands On
+Let's consider 10 node cluster with following config and analyze different possibilities of executors-core-memory distirbution:
+```
+**Cluster Config:**
+10 Nodes
+16 Cores per Node
+64GB RAM per Node
+```
+
+## First approach: Tiny Executors \[One Executor per core\]
 
