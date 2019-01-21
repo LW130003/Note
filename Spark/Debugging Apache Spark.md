@@ -1,8 +1,7 @@
-# Debugging Apache Spark
-## "Professional Stack Trace Reading"
-### with your friends Holden & Joey
+# Debugging Apache Spark "Professional Stack Trace Reading" with your friends Holden & Joey
 
 https://www.slideshare.net/hkarau/debugging-apache-spark-scala-python-super-happy-fun-times-2017
+https://www.youtube.com/playlist?list=PLRLebp9QyZtaoIpE2iaF3Q8itJOcdgYoX
 
 ## What will be covered?
 - Getting at Spark's logs & persisting them
@@ -14,11 +13,11 @@ https://www.slideshare.net/hkarau/debugging-apache-spark-scala-python-super-happ
 
 ## So where are the logs/errors?
 **(e.g. before we can identify a monster we have to find it)**
-- Error messages reported to the console*
-- Log messages reported to the console*
+- Error messages reported to the console\*
+- Log messages reported to the console\*
 - Log messages on the workers - access through the Spark Web UI or Spark History Server
 - Where to error: driver versus worker
-(*When running in client mode)
+(\*When running in client mode)
 
 ## One weird trick to debug anything
 - Don't read the logs (yet)
@@ -83,10 +82,94 @@ transform2.count()
 - DAG visualization is generated inside of Scala
   - Misses Python pipelines
 
-Regardless of language
+## Regardless of language**
 - Can be difficult to determine which element failed
 - Stack trace _sometimes_helps (it did this time)
 - take(1) + count() are your friends - but a lot of work 
 - Persist can help a bit too
 
-Side note: Lambdas aren't 
+**Side note: Lambdas aren't always your friend**
+- Lambda's can make finding the error more challenging
+- I love lambda x,y: x/y as much as the next human but when y is zero
+- A small bit of refactoring for you debugging never hurt anyone\* (A blatant lie, but... it hurts less often than it helps)
+
+## Testing - you should od it!
+- spark-testing-base provides simple classes to build your Spark tests with
+  - It's available on pip & maven central
+- Look at the youtube playlist
+
+## Adding your own logging:
+- Java users use Log4J & friends
+- Python users: use logging library (or even print!)
+- Accumulators - behave a bit weirdly, don't put large amounts of data in them
+
+## Also not all errors are "hard" errors
+- Parsing input? Going to reject some malformed records
+- flatMap or filter + map can make this simpler
+- Still want to track number of rejected records (see accumulators)
+- Invest in dead letter queues - e.g. write malformed records to an Apache Kafka topic
+
+## So using names & logging & accs could be:
+```python
+data = sc.parallelize(range(10))
+rejectedCount = sc.accumulator(0)
+def loggedDivZero(x):
+  import logging
+  try:
+    return [x/0]
+  except Exception as e:
+    rejectedCount.add(1)
+    logging.warning("Error found " + repr(e))
+    return []
+transform1 = data.flatMap(loggedDivZero)
+transform2 = transform1.map(add1)
+transform2.count()
+print("Reject " + str(rejectedCount.value))
+```
+
+## Ok what about if we run out of memory?
+In the middle of some Java stack traces: - MemoryError
+- Out of memory can be pure JVM (worker)
+  - OOM exception during join
+  - GC timelimit exceeded
+- OutOfMemory error, Executors being killed by kernel, etc.
+- Running in YARN? "Application overhead exceeded"
+- JVM out of memory on the driver side from Py4J
+
+## Reasons for JVM worker OOMs (w/PySpark)
+- Unbalanced Shuffles
+- Bufferring of Rows with PySpark + UDFs
+  - If you have a down stream select move it up stream
+- Individual jumbo records (after pickling)
+- Off-heap storage
+- Native code memory leak
+
+## Reasons for Python worker OOMs (w/PySpark)
+- Insufficient memory reserved for Python worker
+- Jumbo records
+- Eager entire partition evaluation (e.g. sort + mapPartitions)
+- Too large partitions (unbalanced or not enough partitions)
+- And loading invalid paths:
+
+## Connecting Java Debuggers
+- Add the JDWP incantation to your JVM launch: -agentlib:jdwp=transport=dt_socket,server=y,address=[debugport]
+  - spark.executor.extraJavaOptions to attch debugger on the executors
+  - --driver-java-options to attach on the driver process
+  - Add "suspend=y" if only debugging a single worker & exiting too quickly
+- JDWP debugger is IDE specific - Eclipse & IntelliJ have docs
+
+## Connecting Python Debuggers
+- You're going to have to change your code a bit
+- You can use broadcast + Singleton "hack" to start pydev or desired remote debugging lib on all of the interpreter
+- See https://wiki.python.org/moin/PythonDebuggingTools for your remote debugging options and pick the one that works with your toolchain.
+
+## Alternative approaches
+- move take(1) up the dependency chain
+- DAG in the WebUI -- less useful for Python
+- toDebugString -- also less useful in Ptyhon
+- Sample data and run locally
+- Running in cluster mode? Consider debugging in client mode
+
+
+
+
