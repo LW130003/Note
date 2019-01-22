@@ -4,7 +4,7 @@ https://medium.com/onzo-tech/serialization-challenges-with-spark-and-scala-part-
 
 Each example steps through some ways you may try to debug the problems, eventually resulting in a working solution.
 
-## 9. Base Example **FAILS**
+## 9. Base Example **\*\*FAILS\*\***
 ```scala
 object Example {
     val testRdd = sc.parallelize(List(1,2,3,4,5))
@@ -28,7 +28,7 @@ Example.run
 
 This example is relatively complex and needs a few changes to work successfully. The next few examples walk through a solution step by step, and some things you may try.
 
-## 10. Make Class Serializable **FAILS**
+## 10. Make Class Serializable **\*\*FAILS\*\***
 ```scala
 object Example {
     val testRdd = sc.parallelize(List(1,2,3,4,5))
@@ -54,7 +54,7 @@ Example.run
 
 One approach to serialization issues can be to make everything Serializable. However, in this case you will find it doesn't solve the issue. You'll find it easier (but not that easy..!) to spot why if you look at the complete examples. It's because when trying to serialize the classes will find references to testRdd. This will trigger Serialization of the Example and the Example class is not Serializable.
 
-## 11a. Use anon function **FAILS**
+## 11a. Use anon function **\*\*FAILS\*\***
 ```scala
 object Example{
     val testRdd = sc.parallelize(List(1,2,3,4,5))
@@ -76,7 +76,7 @@ Example.run
 ```
 In order to debug this you might try simplifying things by replacing the WithFunction class with a simple anonymous function. However, in this case it still have failure. Why?
 
-## 11b. Use anon function, with enclosing **PASSES**
+## 11b. Use anon function, with enclosing **\*\*PASSES\*\***
 ```scala
 object Example {
     val testRdd = sc.parallelize(List(1,2,3,4,5))
@@ -100,7 +100,7 @@ Example.run
 ```
 By enclosing the reduceInts method the map function can now access everything it needs in that one closure, no need to serialize the other classs.
 
-## 12a. Use function with def **FAILS**
+## 12a. Use function with def **\*\*FAILS\*\***
 ```scala
 object Example {
     val testRdd = sc.parallelize(List(1,2,3,4,5))
@@ -128,7 +128,7 @@ Taking small steps, we now replace the anonymous function with a function declar
 
 To find out more about differences between def and val here: https://alvinalexander.com/scala/fp-book-diffs-val-def-scala-functions
 
-## 12b. Use function with val **PASSES**
+## 12b. Use function with val **\*\*PASSES\*\***
 ```scala
 object Example {
     val testRdd = sc.parallelize(List(1,2,3,4,5))
@@ -152,9 +152,10 @@ Example.run
 ```
 Declaring the method with **val** works. A **val** method equates to a Function1 object, which is serializable, and doesn't contain an implicit reference to this, stopping the attempted serialization of the Example object.
 
-## 12c. use function with val explained part 1 **FAILS**
+## 12c. use function with val explained part 1 **\*\*FAILS\*\***
 ```scala
 object Example {
+    val testRdd = sc.parallelize(List(1,2,3,4,5))
     val one = 1
     
     class WithSparkMap(reduceInts: Int => Int) {
@@ -173,4 +174,35 @@ object Example {
         withSparkMap.myFunc
     }
 }
+Example.run
 ```
+This example serves to illustrate the point more clearly. Here the **addOne** function references the **one** value, which will cause the whole **Example** object to be serialized, which will fail.
+
+**\*\*BONUS POINTS\*\***
+One helpful experiment to try here is to resolve this by making the **Example** object Serializable.
+```scala
+object Example extends Serializable {
+    val testRdd = sc.parallelize(List(1,2,3,4,5))
+    val one = 1
+    
+    class WithSparkMap(reduceInts: Int => Int) {
+        def myFunc = {
+            val reduceIntsEnc = reduceInts
+            testRdd
+                .map(e => reduceIntsEnc(e))
+                .collect
+                .toList
+        }        
+    }
+    
+    def run = {
+        val addOne = (num: Int) => num + one
+        val withSparkMap = new WithSparkMap(num => addOne(num))
+        withSparkMap.myFunc
+    }
+}
+Example.run
+```
+Note: this method won't work if testRdd not inside Example, the reason is because it will trying to serialize the whole class / object where testRdd located.
+
+## 12d. use function with val explained part 2 **\*\*PASSES\*\***
