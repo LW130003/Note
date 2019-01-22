@@ -206,3 +206,147 @@ Example.run
 Note: this method won't work if testRdd not inside Example, the reason is because it will trying to serialize the whole class / object where testRdd located.
 
 ## 12d. use function with val explained part 2 **\*\*PASSES\*\***
+```scala
+object Example {
+    val testRdd = sc.parallelize(List(1,2,3,4,5))
+    val one = 1
+    
+    class WithSparkMap(reduceInts: Int => Int){
+        def myFunc = {
+            val reduceIntsEnc = reduceInts
+            testRdd
+                .map(e => reduceIntsEnc(e))
+                .collect
+                .toList
+        }
+    }
+    
+    def run = {
+        val oneEnc = one
+        val addOne = (num: Int) => num + oneEnc
+        val withSparkMap = new WithSparkMap(num => addOne(num))
+        withSparkMap.myFunc
+    }
+}
+Example.run
+```
+As above, the best way to fix the issue is to reference value only in the immediate scope. here we added oneEnc, which prevents the serialization of the whole Example object.
+
+## 13. Back to the problem, no class params **\*\*PASSES\*\***
+```scala
+object Example {
+    val testRdd = sc.parallelize(List(1,2,3,4,5))
+    class WithFunction {
+        val plusOne = (num2: Int) => num2 + 1
+    }
+    
+    class WithSparkMap(reduceInts: Int => Int) {
+        def myFunc = {
+            val reduceIntsEnc = reduceInts
+            testRdd
+                .map(e => reduceIntsEnc(e))
+                .collect
+                .toList
+        }
+    }
+    
+    def run = {
+        val withSparkMap = new WithSparkMap((new WithFunction).plusOne)
+        withSparkMap.myFunc
+    }
+}
+Example.run
+```
+Coming back from the issue we originally had, now we understand a little more let's introduce our WithFunction class back in. To simplify things we've taken out the constructor parameter here. We're also using a val or the method rather than a def. No serialization issue now!
+
+## 14. Back to the problem, with class params **\*\*FAILS\*\***
+```scala
+object Example {
+    val testRdd = sc.parallelize(List(1,2,3,4,5))
+    class WithFunction(val num: Int) {
+        val plusOne = (num2: Int) => num2 + num
+    }
+    
+    class WithSparkMap(reduceInts: Int => Int) {
+        def myFunc = {
+            val reduceIntsEnc = reduceInts
+            testRdd
+                .map(e => reduceIntsEnc(e))
+                .collect
+                .toList
+        }
+    }
+    
+    def run = {
+        val withSparkMap = new WithSparkMap(new WithFunction(1).plusOne)
+        withSparkMap.myFunc
+    }
+}
+Example.run
+```
+We've now added back in the class params. The plusOne function references num, outside the immediate scope, again causing more objects to be serialized which is failing.
+
+## 15a. Back to the problem, with calss params, and enclosing **\*\*PASSES\*\***
+```scala
+object Example {
+    val testRdd = sc.parallelize(List(1,2,3,4,5))
+    
+    class WithFunction(val num: Int) {
+        val plusOne = {
+            val encNum = num
+            num2: Int => num2 + encNum
+        }
+    }
+    
+    class WithSparkMap(reduceInts: Int => Int){
+        def myFunc = {
+            val reduceIntsEnc = reduceInts
+            testRdd
+                .map(e => reduceIntsEnc(e))
+                .collect
+                .toList
+        }
+    }
+    
+    def run = {
+        val withSparkMap = new WithSparkMap(new WithFunction(1).plusOne)
+        withSparkMap.myFunc
+    }    
+}
+Example.run
+```
+This is a simple fix, we can enclose the num value with encNum which resolve s the last of our serialization issues. Finally, this is a complete working example that is equivalent to our first implementation that failed!
+
+## 15b. Adding some complexity - testing understanding **\*\*FAILS\*\***
+```scala
+object Example {
+    val testRdd = sc.parallelize(List(1,2,3,4,5))
+    class WithFunction(val num: Int){
+        val plusOne = { num2: Int => 
+            {
+                val encNum = num
+                num2 + encNum
+            }
+        }
+    }
+    
+    class WithSparkMap(reduceInts: Int => Int) {
+        def myFunc = {
+            val reduceIntsEnc = reduceInts
+            testRdd
+                .map(e => reduceIntsEnc(e))
+                .collect
+                .toList
+        }
+    }
+    
+    def run = {
+        val withSparkMap = new WithSparkMap(new WithFunction(1).plusOne)
+        withSparkMap.myFunc
+    }
+}
+Example.run
+```
+One more failing example! Can you see why the above fails?
+
+The issue is that **encNum** won't be evaluated until plusOne is actually called, effectively within the map function. At this point then the num value will need to be accessed, causing additional serialization of the containing object and the failure here.
