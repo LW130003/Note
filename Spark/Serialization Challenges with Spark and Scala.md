@@ -23,7 +23,7 @@ The function being passed to map (or similar Spark RDD function) itself will nee
 
 ## Basic Examples
 
-### 1. Basic Spark Map **PASSES**
+### 1. Basic Spark Map **\*\*PASSES\*\***
 ```scala
 object Example {
     val testRdd = sc.parallelize(List(1,2,3,4,5))
@@ -33,7 +33,7 @@ Example.myFunc
 ```
 A very simple example - in this case the only thing that will be serialized is a myFunc object which has an apply method that adds 1 to it's input. The Example object won't be serialized
 
-### 2. Spark map with external variables **FAILS**
+### 2. Spark map with external variables **\*\*FAILS\*\***
 ```scala
 object Example {
     val testRdd = sc.parallelize(List(1,2,3,4,5))
@@ -44,7 +44,7 @@ Example.myFunc
 ```
 Very similar to above, but this time within our anonymous function we're accessing the num value. Thererfore the whole of the containing Example object will need to be serialized, which will actually fail because it isn't serializable.
 
-### 3. Spark map with external variable - the first way to fix it. **PASSES**
+### 3. Spark map with external variable - the first way to fix it. **\*\*PASSES\*\***
 ```scala
 object Example extends Serializable {
     val testRdd = sc.parallelize(List(1,2,3,4,5))
@@ -55,7 +55,7 @@ Example.myFunc
 ```
 One solution people often jump to is to make the object in question Serializable. It works, but may not be desirable as ideally we want to be serializing as little as possible.
 
-### 4. Spark map with external variable -  a flawed way to fix it. **FAILS**
+### 4. Spark map with external variable -  a flawed way to fix it. **\*\*FAILS\*\***
 ```scala
 object Example {
     val testRdd = sc.parallelize(List(1,2,3,4,5))
@@ -69,7 +69,7 @@ Example.myFunc
 ```
 In this case we create an enclosedNum value iniside the scope of MyFunc - when this is referenced it should stop trying to serialize the whole object because it can access everything required the scope of myFunc. However, because enclosedNum is a lazy val this still won't work, as it still requires knowledge of num and hence will try to serialize the whole of the Example object.
 
-### 5. Spark map with external variable - properly fixed. **PASSES**
+### 5. Spark map with external variable - properly fixed. **\*\*PASSES\*\***
 ```scala
 object Example {
     val testRdd = sc.parallelize(List(1,2,3,4,5))
@@ -87,7 +87,7 @@ Similar to the previous example, but this time with enclosedNum being a val, whi
 ## Nested Objects
 The same principles apply in the following examples, just with the added complexity of a nested object.
 
-### 6. Nested objects, a simple example **PASSES**
+### 6. Nested objects, a simple example **\*\*PASSES\*\***
 ```scala 
 object Example {
     val testRdd = sc.parallelize(List(1,2,3,4,5))
@@ -101,7 +101,7 @@ Example.NestedExample.myFunc
 ```
 A slightly more complex example but with the same principles. Here innerNum is being referenced by the map function. This trigger serialization of the whole of the NestedExample object. However, this is fine because it extends Serializable. You could use the same enclosing tricks as before to stop the serialization of the NestedExample object too.
 
-### 7. Nested objects gone wrong **FAILS**
+### 7. Nested objects gone wrong **\*\*FAILS\*\***
 ```scala
 object Example {
     val testRdd = sc.parallelize(List(1,2,3,4,5))
@@ -115,7 +115,7 @@ Example.NestedExample.myFunc
 ```
 In this case outerNum is being referenced inside the map function. This means the whole Example object would have to be serialized, which will fail as it isn't Serializable.
 
-### 8. Nested objects, using enclosing in the inner object **PASSES**
+### 8. Nested objects, using enclosing in the inner object **\*\*PASSES\*\***
 ```scala
 object Example {
     val testRdd = sc.parallelize(List(1,2,3,4,5))
