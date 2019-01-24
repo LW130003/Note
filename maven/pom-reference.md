@@ -140,5 +140,41 @@ Now that we have our address structure of groupId:artifactId:version, there is o
 When no packaging is declared, Maven assumes the packaging is the default: jar. The valid types are Plexus role-hints (read more on Plexus for a explanation of roles and role-hints) of the component role org.apache.maven.lifecycle.mapping.LifecycleMapping. The current core packaging values are: pom, jar, maven-plugin, ejb, war, ear, rar. These define the default list of goals which execute to each corresponding build lifecycle stage for a particular package structure: see Plugin Bindings for default Lifecycle Reference for details.
 
 ### 2.2. POM Relationships
+One powerful aspect of Maven is its handling of project relationships: this includes dependencies (and transitive dependencies), inheritance, and aggregation (multi-module projects).
+
+Dependency management has a long tradition of being a complicated mess for anything but the most trivial of projects. "Jarmageddon" quickly ensues as the dependency tree becomes large and complicated. "Jar Hell" follows, where versions of dependencies on one system are not equivalent to the versions developed with, either by the wrong version given, or conflicting versions between similarly named jars.
+
+Maven solves both problems through a common local repository from which to link projects correctly, versions and all.
+
+#### 2.2.1. Dependencies
+The cornerstone of the POM is its dependency list. Most projects depend on others to build and run correctly. If all Maven does for you is manage this list, you have gained a lot. Maven downloads and links the dependencies on compilation and other goals that require them. As an added bonus, Maven brings in the dependencies of those dependencies (transitive dependencies), allowing your list to focus solely on the dependencies your project requires.
+
+```xml
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                      https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  ...
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <type>jar</type>
+      <scope>test</scope>
+      <optional>true</optional>
+    </dependency>
+    ...
+  </dependencies>
+  ...
+</project>
+```
+##### groupId, artifactId, version:
+You will see these elements often. This trinity is used to compute the Maven coordinate of a specific project in time, demarcating it as a dependency of this project. The purpose of this computation is to select a version that matches all the dependency declarations (due to transitive dependencies, there can be multiple dependency declarations for the same artifact). The values should be:
+    - **groupId**, **artifactId**: directly the corresponding coodinates of the dependency.
+    - **version**: a dependency version requirement specification, that will be used to compute the dependency's effective version.
+Since the dependency is described by Maven coordinates, you may be thinking: "This means that my project can only depend upon Maven artifacts!" The answer is, "Of course, but that's a good thing." This forces you to depend solely on dependencies that Maven can manage.
+
+There are times, unfortunately, when a project cannot be downloaded from the central Maven repository. For example, a project may depend upon a jar that has a closed-source license which prevents it from being in a central repository. There are three methods for dealing with this scenario.
 
 
