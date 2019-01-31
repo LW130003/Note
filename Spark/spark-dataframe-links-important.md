@@ -23,7 +23,7 @@
 - https://www.tutorialspoint.com/spark_sql/spark_sql_dataframes.htm
 - https://mapr.com/blog/using-apache-spark-dataframes-processing-tabular-data/
 - https://medium.com/@mrpowers/performing-operations-on-multiple-columns-in-a-spark-dataframe-with-foldleft-42133f82de04
-
+- https://stackoverflow.com/questions/52672015/convert-rdd-of-arrayarraystring-to-dataframe
 - https://spark.apache.org/docs/2.2.0/sql-programming-guide.html
 - https://stackoverflow.com/questions/33981487/filter-spark-dataframe-by-checking-if-value-is-in-a-list-with-other-criteria
 - https://alvinalexander.com/bookmarks/scala/scalas-missing-splat-operator
